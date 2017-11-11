@@ -2,8 +2,9 @@ package registration
 
 import "testing"
 
+var data = NewAppServiceRegistration("localhost")
+
 func TestSettingData(t *testing.T) {
-	data := NewAppServiceRegistration("localhost")
 	if data.Url != "localhost" {
 		t.Error("AppServiceUrl did not get set on init!")
 	}
@@ -35,4 +36,8 @@ func TestSettingData(t *testing.T) {
 	if data.SenderLocalpart != "bot" {
 		t.Error("SenderLocalpart did not get changed!")
 	}
+}
+
+func TestExportingData(t *testing.T) {
+	data.OutputAsYaml("test.yaml")
 }

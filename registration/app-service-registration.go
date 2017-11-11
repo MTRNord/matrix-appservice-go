@@ -1,44 +1,51 @@
 package registration
 
 import (
-	"github.com/MTRNord/matrix-appservice-go/utils"
-	"log"
-	"regexp"
-	"gopkg.in/yaml.v2"
-	"os"
 	"bufio"
+	"encoding/json"
+	"github.com/MTRNord/matrix-appservice-go/utils"
+	"gopkg.in/yaml.v2"
+	"log"
+	"os"
+	"regexp"
 )
 
 type RegexObject struct {
-	Exclusive bool           `yaml:"exclusive"`
-	Regex     *regexp.Regexp `yaml:"regex"`
+	Exclusive bool           `yaml:"exclusive" json:"exclusive"`
+	Regex     *regexp.Regexp `yaml:"regex" json:"regex"`
 }
 
 type Namespaces struct {
-	Users   []RegexObject `yaml:",users"`
-	Aliases []RegexObject `yaml:",aliases"`
-	Rooms   []RegexObject `yaml:",rooms"`
+	Users   []RegexObject `yaml:",flow" json:"users"`
+	Aliases []RegexObject `yaml:",flow" json:"aliases"`
+	Rooms   []RegexObject `yaml:",flow" json:"rooms"`
 }
 
 // Something is the structure we work with
 type AppServiceRegistration struct {
-	Url             string   `yaml:"url"`
-	Id              string   `yaml:"id"`
-	HsToken         string   `yaml:"hs_token"`
-	AsToken         string   `yaml:"as_token"`
-	SenderLocalpart string   `yaml:"sender_localpart"`
-	RateLimited     bool     `yaml:"rate_limited"`
-	Namespaces               `yaml:"namespaces"`
-	Protocols       []string `yaml:"protocols"`
+	Url             string `yaml:"url" json:"url"`
+	Id              string `yaml:"id" json:"id"`
+	HsToken         string `yaml:"hs_token" json:"hs_token"`
+	AsToken         string `yaml:"as_token" json:"as_token"`
+	SenderLocalpart string `yaml:"sender_localpart" json:"sender_localpart"`
+	RateLimited     bool   `yaml:"rate_limited" json:"rate_limited"`
+	Namespaces      `yaml:"namespaces" json:"namespaces"`
+	Protocols       []string `yaml:"protocols" json:"protocols"`
 }
 
 // NewSomething create new instance of Something
-func NewAppServiceRegistration(appServiceUrl string) AppServiceRegistration {
-	AppServiceRegistrationStruct := AppServiceRegistration {
+func NewAppServiceRegistration(appServiceUrl string) *AppServiceRegistration {
+	AppServiceRegistrationStruct := AppServiceRegistration{
 		Url:         appServiceUrl,
 		RateLimited: true,
-		}
-	return AppServiceRegistrationStruct
+	}
+	return &AppServiceRegistrationStruct
+}
+
+func NewFromJson(data []byte) *AppServiceRegistration {
+	AppServiceRegistrationStruct := AppServiceRegistration{}
+	json.Unmarshal(data, &AppServiceRegistrationStruct)
+	return &AppServiceRegistrationStruct
 }
 
 func GenerateToken() string {
@@ -65,7 +72,7 @@ func (a *AppServiceRegistration) GetProtocols() []string {
 	return a.Protocols
 }
 
-func (a *AppServiceRegistration) SetHomeserverToken (token string) {
+func (a *AppServiceRegistration) SetHomeserverToken(token string) {
 	a.HsToken = token
 }
 
@@ -146,6 +153,18 @@ func (a *AppServiceRegistration) OutputAsYaml(filename string) error {
 	return nil
 }
 
+func (a *AppServiceRegistration) isUserMatch(userId string, onlyExclusive bool) bool {
+	return a.isMatch(a.Namespaces.Users, userId, onlyExclusive)
+}
+
+func (a *AppServiceRegistration) isAliasMatch(alias string, onlyExclusive bool) bool {
+	return a.isMatch(a.Namespaces.Aliases, alias, onlyExclusive)
+}
+
+func (a *AppServiceRegistration) isRoomMatch(roomId string, onlyExclusive bool) bool {
+	return a.isMatch(a.Namespaces.Rooms, roomId, onlyExclusive)
+}
+
 func (a *AppServiceRegistration) getOutput(filename string) ([]byte, error) {
 	if a.Id == "" || a.HsToken == "" || a.AsToken == "" || a.Url == "" || a.SenderLocalpart == "" {
 		log.Fatalln("Missing required field(s): id, hsToken, asToken, url, senderLocalpart")
@@ -157,4 +176,16 @@ func (a *AppServiceRegistration) getOutput(filename string) ([]byte, error) {
 	}
 
 	return data, nil
+}
+
+func (a *AppServiceRegistration) isMatch(regexList []RegexObject, sample string, onlyExclusive bool) bool {
+	for _, regex := range regexList {
+		if regex.Regex.MatchString(sample) {
+			if onlyExclusive && !regex.Exclusive {
+				continue
+			}
+			return true
+		}
+	}
+	return false
 }
