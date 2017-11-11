@@ -4,37 +4,39 @@ import (
 	"github.com/MTRNord/matrix-appservice-go/utils"
 	"log"
 	"regexp"
+	"gopkg.in/yaml.v2"
+	"os"
+	"bufio"
 )
 
 type RegexObject struct {
-	exclusive bool
-	regex *regexp.Regexp
+	Exclusive bool           `yaml:"exclusive"`
+	Regex     *regexp.Regexp `yaml:"regex"`
 }
 
 type Namespaces struct {
-	users []RegexObject
-	aliases []RegexObject
-	rooms []RegexObject
+	Users   []RegexObject `yaml:",users"`
+	Aliases []RegexObject `yaml:",aliases"`
+	Rooms   []RegexObject `yaml:",rooms"`
 }
 
 // Something is the structure we work with
 type AppServiceRegistration struct {
-	url string
-	id string
-	hsToken string
-	asToken string
-	senderLocalpart string
-	rateLimited bool
-	Namespaces
-	protocols []string
-	cachedRegex string
+	Url             string   `yaml:"url"`
+	Id              string   `yaml:"id"`
+	HsToken         string   `yaml:"hs_token"`
+	AsToken         string   `yaml:"as_token"`
+	SenderLocalpart string   `yaml:"sender_localpart"`
+	RateLimited     bool     `yaml:"rate_limited"`
+	Namespaces               `yaml:"namespaces"`
+	Protocols       []string `yaml:"protocols"`
 }
 
 // NewSomething create new instance of Something
 func NewAppServiceRegistration(appServiceUrl string) AppServiceRegistration {
 	AppServiceRegistrationStruct := AppServiceRegistration {
-		url: appServiceUrl,
-		rateLimited: true,
+		Url:         appServiceUrl,
+		RateLimited: true,
 		}
 	return AppServiceRegistrationStruct
 }
@@ -44,51 +46,51 @@ func GenerateToken() string {
 }
 
 func (a *AppServiceRegistration) SetAppServiceUrl(url string) {
-	a.url = url
+	a.Url = url
 }
 
 func (a *AppServiceRegistration) SetID(id string) {
-	a.id = id
+	a.Id = id
 }
 
 func (a *AppServiceRegistration) GetID() string {
-	return a.id
+	return a.Id
 }
 
 func (a *AppServiceRegistration) SetProtocols(protocols []string) {
-	a.protocols = protocols
+	a.Protocols = protocols
 }
 
 func (a *AppServiceRegistration) GetProtocols() []string {
-	return a.protocols
+	return a.Protocols
 }
 
 func (a *AppServiceRegistration) SetHomeserverToken (token string) {
-	a.hsToken = token
+	a.HsToken = token
 }
 
 func (a *AppServiceRegistration) GetHomeserverToken() string {
-	return a.hsToken
+	return a.HsToken
 }
 
 func (a *AppServiceRegistration) SetAppServiceToken(token string) {
-	a.asToken = token
+	a.AsToken = token
 }
 
 func (a *AppServiceRegistration) GetAppServiceToken() string {
-	return a.asToken
+	return a.AsToken
 }
 
 func (a *AppServiceRegistration) SetSenderLocalpart(localpart string) {
-	a.senderLocalpart = localpart
+	a.SenderLocalpart = localpart
 }
 
 func (a *AppServiceRegistration) GetSenderLocalpart() string {
-	return a.senderLocalpart
+	return a.SenderLocalpart
 }
 
 func (a *AppServiceRegistration) SetRateLimited(isRateLimited bool) {
-	a.rateLimited = isRateLimited
+	a.RateLimited = isRateLimited
 }
 
 func (a *AppServiceRegistration) AddRegexPattern(NSType string, regexString string, exclusive bool) error {
@@ -98,24 +100,61 @@ func (a *AppServiceRegistration) AddRegexPattern(NSType string, regexString stri
 		if err != nil {
 			return err
 		}
-		regexObjectStruct := RegexObject{exclusive: exclusive, regex: regex}
-		a.Namespaces.users = append(a.Namespaces.users, regexObjectStruct)
+		regexObjectStruct := RegexObject{Exclusive: exclusive, Regex: regex}
+		a.Namespaces.Users = append(a.Namespaces.Users, regexObjectStruct)
 	case "aliases":
 		regex, err := regexp.Compile(regexString)
 		if err != nil {
 			return err
 		}
-		regexObjectStruct := RegexObject{exclusive: exclusive, regex: regex}
-		a.Namespaces.aliases = append(a.Namespaces.aliases, regexObjectStruct)
+		regexObjectStruct := RegexObject{Exclusive: exclusive, Regex: regex}
+		a.Namespaces.Aliases = append(a.Namespaces.Aliases, regexObjectStruct)
 	case "rooms":
 		regex, err := regexp.Compile(regexString)
 		if err != nil {
 			return err
 		}
-		regexObjectStruct := RegexObject{exclusive: exclusive, regex: regex}
-		a.Namespaces.rooms = append(a.Namespaces.rooms, regexObjectStruct)
+		regexObjectStruct := RegexObject{Exclusive: exclusive, Regex: regex}
+		a.Namespaces.Rooms = append(a.Namespaces.Rooms, regexObjectStruct)
 	default:
 		log.Panicln("'NSType' must be 'users', 'rooms' or 'aliases'")
 	}
 	return nil
+}
+
+func (a *AppServiceRegistration) OutputAsYaml(filename string) error {
+	data, DataErr := a.getOutput(filename)
+	if DataErr != nil {
+		return DataErr
+	}
+
+	f, CreateErr := os.Create(filename)
+	if CreateErr != nil {
+		return CreateErr
+	}
+	defer f.Close()
+
+	w := bufio.NewWriter(f)
+
+	_, WriteErr := w.Write(data)
+	if WriteErr != nil {
+		return WriteErr
+	}
+
+	w.Flush()
+
+	return nil
+}
+
+func (a *AppServiceRegistration) getOutput(filename string) ([]byte, error) {
+	if a.Id == "" || a.HsToken == "" || a.AsToken == "" || a.Url == "" || a.SenderLocalpart == "" {
+		log.Fatalln("Missing required field(s): id, hsToken, asToken, url, senderLocalpart")
+	}
+
+	data, err := yaml.Marshal(a)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }
