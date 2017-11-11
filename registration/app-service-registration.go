@@ -11,26 +11,26 @@ import (
 )
 
 type RegexObject struct {
-	Exclusive bool           `yaml:"exclusive" json:"exclusive"`
-	Regex     *regexp.Regexp `yaml:"regex" json:"regex"`
+	Exclusive bool           `yaml:"exclusive,omitempty" json:"exclusive,omitempty"`
+	Regex     *regexp.Regexp `yaml:"regex,omitempty" json:"regex,omitempty"`
 }
 
 type Namespaces struct {
-	Users   []RegexObject `yaml:",flow" json:"users"`
-	Aliases []RegexObject `yaml:",flow" json:"aliases"`
-	Rooms   []RegexObject `yaml:",flow" json:"rooms"`
+	Users   []RegexObject `yaml:",flow,omitempty" json:"users,omitempty"`
+	Aliases []RegexObject `yaml:",flow,omitempty" json:"aliases,omitempty"`
+	Rooms   []RegexObject `yaml:",flow,omitempty" json:"rooms,omitempty"`
 }
 
 // Something is the structure we work with
 type AppServiceRegistration struct {
-	Url             string `yaml:"url" json:"url"`
-	Id              string `yaml:"id" json:"id"`
-	HsToken         string `yaml:"hs_token" json:"hs_token"`
-	AsToken         string `yaml:"as_token" json:"as_token"`
-	SenderLocalpart string `yaml:"sender_localpart" json:"sender_localpart"`
-	RateLimited     bool   `yaml:"rate_limited" json:"rate_limited"`
-	Namespaces      `yaml:"namespaces" json:"namespaces"`
-	Protocols       []string `yaml:"protocols" json:"protocols"`
+	Url             string `yaml:"url,omitempty" json:"url,omitempty"`
+	Id              string `yaml:"id,omitempty" json:"id,omitempty"`
+	HsToken         string `yaml:"hs_token,omitempty" json:"hs_token,omitempty"`
+	AsToken         string `yaml:"as_token,omitempty" json:"as_token,omitempty"`
+	SenderLocalpart string `yaml:"sender_localpart,omitempty" json:"sender_localpart,omitempty"`
+	RateLimited     bool   `yaml:"rate_limited,omitempty" json:"rate_limited,omitempty"`
+	Namespaces      `yaml:"namespaces,omitempty" json:"namespaces,omitempty"`
+	Protocols       []string `yaml:"protocols,omitempty" json:"protocols,omitempty"`
 }
 
 // NewSomething create new instance of Something
